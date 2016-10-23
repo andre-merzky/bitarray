@@ -2,6 +2,9 @@
 bitarray: efficient arrays of booleans
 ======================================
 
+.. image:: https://travis-ci.org/diamondman/bitarray.svg?branch=master
+    :target: https://travis-ci.org/diamondman/bitarray
+
 This module provides an object type which efficiently represents an array
 of booleans.  Bitarrays are sequence types and behave very much like usual
 lists.  Eight bits are represented by one byte in a contiguous block of
@@ -68,7 +71,7 @@ Once you have installed the package, you may want to test it::
    ...........................................
    ----------------------------------------------------------------------
    Ran 134 tests in 1.396s
-   
+
    OK
 
 You can always import the function test,
@@ -305,26 +308,26 @@ Reference
    the optional initial, and endianness.
    If no object is provided, the bitarray is initialized to have length zero.
    The initial object may be of the following types:
-   
+
    int, long
        Create bitarray of length given by the integer.  The initial values
        in the array are random, because only the memory allocated.
-   
+
    string
        Create bitarray from a string of '0's and '1's.
-   
+
    list, tuple, iterable
        Create bitarray from a sequence, each element in the sequence is
        converted to a bit using truth value value.
-   
+
    bitarray
        Create bitarray from another bitarray.  This is done by copying the
        memory holding the bitarray data, and is hence very fast.
-   
+
    The optional keyword arguments 'endian' specifies the bit endianness of the
    created bitarray object.
    Allowed values are 'big' and 'little' (default is 'big').
-   
+
    Note that setting the bit endianness only has an effect when accessing the
    machine representation of the bitarray, i.e. when using the methods: tofile,
    fromfile, tobytes, frombytes.
@@ -462,15 +465,23 @@ Reference
    Reverse the order of bits in the array (in-place).
 
 
-``search(bitarray, [limit])`` -> list
+``search(bitarray, [limit], [pos])`` -> list
    Searches for the given a bitarray in self, and returns the start positions
    where bitarray matches self as a list.
-   The optional argument limits the number of search results to the integer
-   specified.  By default, all search results are returned.
+   The optional `limit` argument limits the number of search results to the 
+   integer specified.  By default, all search results are returned.
+   The optional `pos` argument begins the search at the position specified.
+   By default, search begins at position 0.  If no match is found until the end,
+   the search will wrap around until reaching the start position again.
 
 
 ``setall(value)``
    Set all bits in the bitarray to bool(value).
+
+
+``setlist(list, val) -> int``
+   Sets the bitarray to the given value for each position given in the list,
+   and returns the number of bits set.
 
 
 ``sort(reverse=False)``

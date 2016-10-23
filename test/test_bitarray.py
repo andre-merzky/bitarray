@@ -551,6 +551,21 @@ class SliceTests(unittest.TestCase, Util):
                           slice(None, 2, None), -1)
 
 
+    def test_setlist_to_bool(self):
+        a = bitarray('11111111')
+        a.setlist([0, 2, 4, 6], False)  
+        self.assertEqual(a, bitarray('01010101'))
+        a.setlist([0, 4], True)  
+        self.assertEqual(a, bitarray('11011101'))
+
+    def test_setlist_to_int(self):
+        a = bitarray('11111111')
+        a.setlist([0, 2, 4, 6], 0)  
+        self.assertEqual(a, bitarray('01010101'))
+        a.setlist([0, 4], 1)  
+        self.assertEqual(a, bitarray('11011101'))
+
+
     def test_delitem1(self):
         a = bitarray('100110')
         del a[1]
@@ -1365,6 +1380,19 @@ class MethodTests(unittest.TestCase, Util):
             self.assertEqual(list(a.itersearch(b)), res)
             self.assertEqual([p for p in a.itersearch(b)], res)
 
+    def test_search4(self):
+        ba = bitarray('0011001100110011')
+        for inc in [1, 2, 3, 4, 5, 6]:
+            pos = -1
+            res = list()
+            while True:
+                match = ba.search(bitarray('11'), inc, pos)
+                if not match:
+                    break
+                res += match
+                pos  = match[-1] + 1
+            self.assertEqual([2, 6, 10, 14], res), inc
+        self.assertEqual([], ba.search(bitarray('11'), 1, len(ba)+1))
 
     def test_fill(self):
         a = bitarray('')
@@ -2106,22 +2134,3 @@ if sys.version_info[:2] == (2, 7):
             self.assertEqual(a[399999:400009], bitarray('0111011110'))
             v[30001:30004] = 'ABC'
             self.assertEqual(a[240000:240040].tobytes(), '\x00ABC\x00')
-
-# ---------------------------------------------------------------------------
-
-def run(verbosity=1, repeat=1):
-    print('bitarray is installed in: %s' % os.path.dirname(__file__))
-    print('bitarray version: %s' % __version__)
-    print('Python version: %s' % sys.version)
-
-    suite = unittest.TestSuite()
-    for cls in tests:
-        for _ in range(repeat):
-            suite.addTest(unittest.makeSuite(cls))
-
-    runner = unittest.TextTestRunner(verbosity=verbosity)
-    return runner.run(suite)
-
-
-if __name__ == '__main__':
-    run()
