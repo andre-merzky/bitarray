@@ -376,12 +376,84 @@ static void
 setrange(bitarrayobject *self, idx_t start, idx_t stop, int val)
 {
     idx_t i;
+    idx_t ret     = 0;
+    idx_t b_start = 0;
+    idx_t b_stop  = 0;
 
     assert(0 <= start && start <= self->nbits);
-    assert(0 <= stop && stop <= self->nbits);
-    for (i = start; i < stop; i++)
-        setbit(self, i, val);
+    assert(0 <= stop  && stop  <= self->nbits);
+    assert(start <= stop);
+
+    /* If the range is large, we use memset() to set all full bytes within 
+     * the range.  We use 100 bytes as heuristic min size for that approach
+     */
+    if (stop-start < 100)
+    {
+        /* range is small - just iterate and set bits individually */
+        for (i = start; i < stop; i++)
+        {
+            ret++;
+            setbit(self, i, val);
+        }
+    }
+    else
+    {
+        /* range is large enough to care.  We first find the byte boundaries
+         * for the bytes which are fully within the range.
+         */
+        if ( 0 == start%8) { b_start =  start                / 8; }
+        else               { b_start = (start+8 - (start%8)) / 8; }
+        if ( 0 == stop%8)  { b_stop  =  stop                 / 8; }
+        else               { b_stop  = (stop    - (stop%8))  / 8; }
+
+        assert(b_start < b_stop);
+        memset(self->ob_item+b_start, val ? 0xff : 0x00, b_stop-b_start);
+        ret = (b_stop-b_start) * 8;
+
+        /* then set the partial leading and trailing bytes */
+        for (i = start; i < b_start*8; i++)
+        {
+            setbit(self, i, val);
+            ret++;
+        }
+        for (i = b_stop*8; i < stop; i++)
+        {
+            setbit(self, i, val);
+            ret++;
+        }
+    }
+
+
+    return ret;
 }
+
+static PyObject *
+bitarray_setrange(bitarrayobject *self, PyObject *args)
+{
+    Py_ssize_t start =   -1; /* start of range to set */
+    Py_ssize_t stop  =   -1; /* end of range to set */
+    PyObject   *v    = NULL; /* value to set (evals to true/false) */
+    int         vi   =    0; /* int val to set */
+    idx_t       ret  =    0; /* return value: number of bits set */
+
+    if (!PyArg_ParseTuple(args, PY_SSIZE_T_FMT PY_SSIZE_T_FMT "O:_setrange", &start, &stop, &v))
+        return NULL;
+
+    vi  = PyObject_IsTrue(v);
+
+    /* setrange checks for idx *<* stop, so we inc by one */
+    ret = setrange(self, start, stop+1, vi);
+    return PyLong_FromLongLong(ret);
+}
+
+PyDoc_STRVAR(setrange_doc,
+"setrange(bitarray, start, stop, val) -> int\n\
+\n\
+Sets a range in the bitarray to the given value, and returns the number\n\
+of bits set.\n\
+");
+
+
 
 static void
 invert(bitarrayobject *self)
@@ -2473,6 +2545,10 @@ bitarray_methods[] = {
      reverse_doc},
     {"setall",       (PyCFunction) bitarray_setall,      METH_O,
      setall_doc},
+    {"setrange",     (PyCFunction) bitarray_setrange,    METH_VARARGS,
+     setrange},
+    {"setlist",      (PyCFunction) bitarray_setlist,     METH_VARARGS,
+     setlist_doc},
     {"search",       (PyCFunction) bitarray_search,      METH_VARARGS,
      search_doc},
     {"itersearch",   (PyCFunction) bitarray_itersearch,  METH_O,
